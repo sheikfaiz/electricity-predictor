@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>⚡ Smart EB Calculator</title>
+
+<style>
+body {
+    font-family: 'Segoe UI';
+    background: linear-gradient(135deg,#0f0c29,#302b63);
+    color:white;
+    margin:0;
+}
+.header { text-align:center; padding:20px; }
+.grid {
+    display:grid;
+    grid-template-columns: repeat(auto-fit,minmax(250px,1fr));
+    gap:15px;
+    padding:20px;
+}
+.card {
+    background: rgba(255,255,255,0.08);
+    padding:15px;
+    border-radius:15px;
+}
+.inputs { display:none; margin-top:10px; }
+button {
+    display:block;
+    margin:20px auto;
+    padding:12px;
+    width:90%;
+    border:none;
+    border-radius:10px;
+    background:linear-gradient(135deg,#a78bfa,#60a5fa);
+}
+.result {
+    background: rgba(255,255,255,0.08);
+    margin:20px;
+    padding:20px;
+    border-radius:15px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+<h1>⚡ Smart Electricity Calculator</h1>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<button onclick="calculate()">⚡ Calculate</button>
+
+<div id="result" class="result" style="display:none;"></div>
+
+<script>
+
+const APPLIANCES = {
+    light: {label:"💡 Light", watts:10},
+    fan: {label:"🌀 Fan", watts:75},
+    ac: {label:"❄️ AC", watts:1500},
+    refrigerator: {label:"🧊 Fridge", watts:200},
+    tv: {label:"📺 TV", watts:100},
+    washing_machine: {label:"🫧 Washing Machine", watts:500}
+};
+
+// create UI
+const grid = document.getElementById("grid");
+
+for (let key in APPLIANCES){
+    let a = APPLIANCES[key];
+
+    grid.innerHTML += `
+    <div class="card">
+        <label>
+            <input type="checkbox" onchange="toggle('${key}', this)">
+            <b>${a.label}</b>
+        </label>
+
+        <div class="inputs" id="box_${key}">
+            Qty:<input type="number" id="qty_${key}" value="1">
+            Hours:<input type="number" id="hrs_${key}" value="1">
+            Watts:<input type="number" id="watts_${key}" value="${a.watts}">
+        </div>
+    </div>`;
+}
+
+function toggle(id, el){
+    document.getElementById("box_"+id).style.display =
+        el.checked ? "block" : "none";
+}
+
+// bill calculation
+function calcBill(units){
+    let bill = 0;
+
+    let slab1 = Math.min(units,100);
+    units -= slab1;
+
+    if(units>0){
+        let s = Math.min(units,100);
+        bill += s*1.5;
+        units -= s;
+    }
+
+    if(units>0){
+        let s = Math.min(units,300);
+        bill += s*3;
+        units -= s;
+    }
+
+    if(units>0){
+        bill += units*5;
+    }
+
+    return {energy:bill, fixed:30, total:bill+30};
+}
+
+function calculate(){
+    let totalDaily = 0;
+    let breakdown = [];
+
+    for(let key in APPLIANCES){
+        let checkbox = document.querySelector(`input[onchange*="${key}"]`);
+
+        if(checkbox && checkbox.checked){
+            let qty = parseFloat(document.getElementById("qty_"+key).value);
+            let hrs = parseFloat(document.getElementById("hrs_"+key).value);
+            let watts = parseFloat(document.getElementById("watts_"+key).value);
+
+            let kwh = (watts * hrs * qty) / 1000;
+            totalDaily += kwh;
+
+            breakdown.push(`${APPLIANCES[key].label} → ${kwh.toFixed(2)} kWh/day`);
+        }
+    }
+
+    let monthly = totalDaily * 30;
+    let yearly = totalDaily * 365;
+
+    let bill = calcBill(monthly);
+
+    let resultDiv = document.getElementById("result");
+    resultDiv.style.display = "block";
+
+    resultDiv.innerHTML = `
+        <h2>⚡ Usage</h2>
+        Daily: ${totalDaily.toFixed(2)} kWh<br>
+        Monthly: ${monthly.toFixed(1)} kWh<br>
+        Yearly: ${yearly.toFixed(0)} kWh
+
+        <h3>📊 Breakdown</h3>
+        ${breakdown.join("<br>")}
+
+        <h3>💰 Bill</h3>
+        Energy: ₹ ${bill.energy.toFixed(2)}<br>
+        Fixed: ₹ ${bill.fixed}<br>
+        <h2>Total: ₹ ${bill.total.toFixed(2)}</h2>
+    `;
+}
+
+</script>
+
+</body>
+</html>
